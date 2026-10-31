@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noor Al-Quran Tahfeez Academy | Multi-Tenant Portal</title>
+  <meta name="description" content="Integrated Multi-Tenant Attendance and Quran Memorization Management System for Islamic Tahfeez Schools.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+</head>
+<body>
+  <!-- ========================================================
+       AUTHENTICATION OVERLAY (Shown when user is not logged in)
+       ======================================================== -->
+  <div id="login-overlay" class="login-overlay-wrapper">
+    <div class="login-card">
+      <div class="login-crest">📖</div>
+      <h2 class="login-title">Islamic Academy Portal</h2>
+      <div class="login-arabic-title">نظام إدارة الحضور وتحفيظ القرآن الكريم</div>
+
+      <div id="login-error-banner" class="login-error-banner"></div>
+
+      <form id="login-form" class="login-form">
+        <!-- Multi-tenant School Selection -->
+        <div class="form-group">
+          <label class="form-label" for="login-school-select">Select Islamic Academy / School (المدرسة أو المعهد)</label>
+          <select id="login-school-select" class="form-select" required></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-username">Username or Email (اسم المستخدم)</label>
+          <input type="text" id="login-username" class="form-input" placeholder="Enter your username or email" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password (كلمة المرور)</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password" style="width: 100%; padding-right: 40px;">
+            <button type="button" id="btn-toggle-login-pass" style="position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1rem;" title="Show or hide password" aria-label="Toggle password visibility">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px; padding: 12px;">
+          <span>🔐</span> Log In to Portal
+        </button>
+      </form>
+
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-light); font-size: 0.775rem; color: var(--text-muted); text-align: center;">
+        🔒 Secure Islamic Academy Management Portal • Authorized Personnel Only
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MAIN APPLICATION SHELL (Visible when authenticated)
+       ======================================================== -->
+  <div class="app-wrapper">
+    <!-- Top Islamic Geometric Accent -->
+    <div class="islamic-header-pattern"></div>
+
+    <!-- Main Navigation Header -->
+    <header class="app-header">
+      <div class="header-container">
+        <!-- Brand & Active Tenant -->
+        <div class="brand-section">
+          <div class="school-logo-crest" title="Academy Crest">
+            <span>📖</span>
+          </div>
+          <div class="brand-titles">
+            <span class="school-arabic-title">معهد نور القرآن الكريم للتحفيظ</span>
+            <span class="school-english-title">Noor Al-Quran Academy • Attendance & Hifz Tracker</span>
+          </div>
+        </div>
+
+        <!-- Header Actions: Hijri Date, Tenant Selector, User Profile, Theme, Logout -->
+        <div class="header-actions">
+          <div class="hijri-banner" id="header-hijri-date">
+            <strong>14 Rabi' al-Thani 1448 AH</strong> • <span>Sunday, Oct 25, 2026</span>
+          </div>
+
+          <!-- Multi-tenant Switcher for Admins/Multi-school Managers -->
+          <div class="role-switcher-box" title="Switch Multi-Tenant Academy">
+            <span style="font-size: 0.8rem;">🏛</span>
+            <select id="header-tenant-selector" class="role-select" aria-label="Active School Tenant"></select>
+          </div>
+
+          <!-- Global Student Search -->
+          <div class="search-wrapper">
+            <span class="search-icon-pos">🔍</span>
+            <input 
+              type="text" 
+              id="global-student-search" 
+              class="search-input-box" 
+              placeholder="Search student or ID..." 
+              autocomplete="off"
+            />
+            <div id="search-results-dropdown" class="search-results-dropdown"></div>
+          </div>
+
+          <!-- User Display & Role Pill -->
+          <div class="role-switcher-box">
+            <span id="user-role-badge" class="role-pill pill-teacher">TEACHER</span>
+            <span id="user-display-name" style="font-size: 0.85rem; font-weight: 700; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              User
+            </span>
+          </div>
+
+          <!-- Theme Toggle -->
+          <button id="theme-toggle-btn" class="btn-icon-subtle" title="Toggle Theme">
+            <span class="icon">☀️</span> Light Mode
+          </button>
+
+          <!-- Logout Button -->
+          <button id="btn-header-logout" class="btn-icon-subtle" style="color: var(--status-absent); border-color: rgba(239, 68, 68, 0.4);" title="Log out of system">
+            <span>🚪</span> Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Nav Tabs Bar -->
+    <nav class="nav-tabs-bar" aria-label="Main Navigation">
+      <div class="nav-tabs-container">
+        <button class="nav-tab-btn active" data-tab="overview">
+          <span>📊</span> Overview Dashboard (لوحة التحكم)
+        </button>
+        <button class="nav-tab-btn" data-tab="attendance">
+          <span>📋</span> Attendance Register (سجل الحضور)
+        </button>
+        <button class="nav-tab-btn" data-tab="hifz">
+          <span>📖</span> Quran Hifz Tracker (متابعة التحفيظ)
+        </button>
+        <button class="nav-tab-btn" data-tab="targets">
+          <span>🎯</span> Target Setting (إدارة الأهداف)
+        </button>
+        <button class="nav-tab-btn" data-tab="student-portal">
+          <span>🎓</span> Student & Parent Portal (بوابة الطالب)
+        </button>
+        <button class="nav-tab-btn" data-tab="users" style="display: none;">
+          <span>👥</span> User Accounts (إدارة المستخدمين)
+        </button>
+        <button class="nav-tab-btn" data-tab="settings" style="display: none;">
+          <span>⚙️</span> Academy Settings & Backup (الإعدادات)
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content Panes -->
+    <main class="main-content">
+      
+      <!-- TAB 1: OVERVIEW DASHBOARD -->
+      <section id="tab-overview" class="tab-content-pane active">
+        <!-- Quranic Verse Banner -->
+        <div class="quote-banner">
+          <div class="quote-arabic">
+            « إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ وَيُبَشِّرُ الْمُؤْمِنِينَ »
+          </div>
+          <div class="quote-english">
+            "Indeed, this Quran guides to that which is most suitable and gives good tidings to the believers." 
+            <br><strong>— Surah Al-Isra (17:9)</strong>
+          </div>
+        <!-- Admin Quick Notice Bar -->
+        <div id="admin-overview-banner" class="alert-banner" style="display: none; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--emerald-500); justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 1.4rem;">👑</span>
+            <div>
+              <strong style="color: var(--emerald-400);">Administrator Control Console:</strong>
+              <div class="small text-secondary">The initial student profiles are sample demonstration records. You can start fresh with an empty school registry at any time.</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button id="btn-admin-clear-demo" class="btn-icon-subtle" style="color: var(--status-absent); border-color: rgba(239, 68, 68, 0.4);">
+              🧹 Clear Demo Data (Start Clean)
+            </button>
+            <button class="btn-primary" data-jump-tab="users" style="padding: 6px 14px; font-size: 0.85rem;">
+              👥 Manage Users & Staff
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid-4">
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Enrolled Students</span>
+              <span class="stat-icon">👥</span>
+            </div>
+            <div class="stat-value" id="ov-stat-students">0</div>
+            <span class="stat-subtext">Active in current academy</span>
+          </div>
+
+          <div class="stat-card stat-blue">
+            <div class="stat-header">
+              <span class="stat-title">Tahfeez Circles</span>
+              <span class="stat-icon">🏛</span>
+            </div>
+            <div class="stat-value" id="ov-stat-classes">0 Halaqahs</div>
+            <span class="stat-subtext">Beginner to Khatm levels</span>
+          </div>
+
+          <div class="stat-card stat-gold">
+            <div class="stat-header">
+              <span class="stat-title">Today's Attendance</span>
+              <span class="stat-icon">📅</span>
+            </div>
+            <div class="stat-value" id="ov-stat-attendance">0%</div>
+            <span class="stat-subtext">Present or Excused</span>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-title">Memorized Volume</span>
+              <span class="stat-icon">🌟</span>
+            </div>
+            <div class="stat-value" id="ov-stat-hifz">0 Ajza</div>
+            <span class="stat-subtext">Cumulative school progress</span>
+          </div>
+        </div>
+
+        <!-- Quick Action Shortcuts -->
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Quick Actions (إجراءات سريعة)</h2>
+            <p class="section-subtitle">Common daily teacher and administrator workflows</p>
+          </div>
+          <div class="section-controls">
+            <button class="btn-primary" data-jump-tab="attendance">
+              <span>✓</span> Mark Today's Attendance
+            </button>
+            <button class="btn-gold" data-jump-tab="hifz">
+              <span>📖</span> Log Hifz Assessment
+            </button>
+            <button class="btn-secondary" data-jump-tab="targets">
+              <span>🎯</span> Assign Memorization Target
+            </button>
+            <button class="btn-secondary" id="btn-open-add-student-modal">
+              <span>➕</span> Enroll New Student
+            </button>
+          </div>
+        </div>
+
+        <!-- 2-Column Overview: Halaqahs & Recent Activity -->
+        <div class="grid-2">
+          <!-- Halaqah Cards -->
+          <div class="halaqah-overview-section">
+            <h3 style="margin-bottom: 12px;">Tahfeez Halaqahs (حلقات التحفيظ)</h3>
+            <div id="overview-halaqah-cards" class="halaqah-cards-grid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Activity Feed -->
+          <div class="activity-feed-section">
+            <div class="stat-card">
+              <h3 style="margin-bottom: 16px; font-size: 1.1rem;">Recent Activity Feed (آخر التحديثات)</h3>
+              <div id="overview-activity-feed" class="activity-feed-list">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ATTENDANCE MANAGEMENT -->
+      <section id="tab-attendance" class="tab-content-pane">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Attendance Register (سجل الحضور والغياب)</h2>
+            <p class="section-subtitle">Form Master authorization model & daily attendance recording</p>
+          </div>
+          <div class="section-controls">
+            <div class="form-group" style="margin: 0; min-width: 220px;">
+              <select id="att-class-select" class="form-select" aria-label="Select Class"></select>
+            </div>
+            <input type="date" id="att-date-picker" class="form-input" style="min-width: 150px;" aria-label="Select Date">
+            <button id="att-btn-mark-all-present" class="btn-primary">
+              <span>✓✓</span> Mark All Present
+            </button>
+            <button id="att-btn-print" class="btn-secondary">
+              <span>🖨</span> Print Sheet
+            </button>
+          </div>
+        </div>
+
+        <!-- Permission Notice Banner -->
+        <div id="att-permission-alert" style="display: none;"></div>
+
+        <!-- Attendance Stats Strip -->
+        <div class="grid-4" style="margin-bottom: 20px;">
+          <div class="stat-card" style="padding: 14px 18px;">
+            <span class="stat-title">Enrolled</span>
+            <div class="stat-value" id="att-stat-total" style="font-size: 1.6rem;">0</div>
+          </div>
+          <div class="stat-card" style="padding: 14px 18px;">
+            <span class="stat-title text-emerald">Present (حاضر)</span>
+            <div class="stat-value text-emerald" id="att-stat-present" style="font-size: 1.6rem;">0</div>
+          </div>
+          <div class="stat-card stat-gold" style="padding: 14px 18px;">
+            <span class="stat-title text-gold">Late / Excused</span>
+            <div class="stat-value text-gold" style="font-size: 1.6rem;">
+              <span id="att-stat-late">0</span> / <span id="att-stat-excused">0</span>
+            </div>
+          </div>
+          <div class="stat-card" style="padding: 14px 18px;">
+            <span class="stat-title" style="color: var(--status-absent)">Absent (غائب)</span>
+            <div class="stat-value" id="att-stat-absent" style="font-size: 1.6rem; color: var(--status-absent)">0</div>
+          </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="table-responsive">
+          <table class="styled-table" id="attendance-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Student Information</th>
+                <th style="width: 140px;">Attendance Rate</th>
+                <th style="width: 380px;">Mark Status (الحالة)</th>
+                <th>Daily Remark / Notes</th>
+              </tr>
+            </thead>
+            <tbody id="att-students-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: QURAN HIFZ TRACKER -->
+      <section id="tab-hifz" class="tab-content-pane">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Quran Memorization Tracker (متابعة الحفظ والتسميع)</h2>
+            <p class="section-subtitle">Classical 3-Part Hifz Model: Sabaq (New), Sabqi (Recent), and Manzil (Cycle)</p>
+          </div>
+          <div class="section-controls">
+            <select id="hifz-class-filter" class="form-select">
+              <option value="all">All Halaqahs</option>
+            </select>
+            <select id="hifz-student-filter" class="form-select">
+              <option value="all">All Students</option>
+            </select>
+            <select id="hifz-rating-filter" class="form-select">
+              <option value="all">All Ratings</option>
+              <option value="excellent">Excellent (ممتاز)</option>
+              <option value="good">Good (جيد جداً)</option>
+              <option value="fair">Fair (مقبول)</option>
+              <option value="poor">Needs Practice</option>
+            </select>
+            <button id="btn-open-hifz-modal" class="btn-gold">
+              <span>➕</span> Log Daily Evaluation
+            </button>
+          </div>
+        </div>
+
+        <!-- Hifz KPIs -->
+        <div class="grid-4" style="margin-bottom: 20px;">
+          <div class="stat-card stat-gold">
+            <span class="stat-title">Total Ajza Memorized</span>
+            <div class="stat-value text-gold" id="hifz-stat-ajza">0 Ajza</div>
+            <span class="stat-subtext">Across active student body</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Hifz Average</span>
+            <div class="stat-value" id="hifz-stat-avg">0.0 / Student</div>
+            <span class="stat-subtext">Average completed Ajza</span>
+          </div>
+          <div class="stat-card stat-blue">
+            <span class="stat-title">Near-Khatm Candidates</span>
+            <div class="stat-value" id="hifz-stat-huffaz" style="color: #60a5fa;">0</div>
+            <span class="stat-subtext">Students with 25+ Ajza</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Recent Evaluations</span>
+            <div class="stat-value" id="hifz-stat-evals">0</div>
+            <span class="stat-subtext">Teacher assessments logged</span>
+          </div>
+        </div>
+
+        <!-- Student Progress Cards Grid -->
+        <div class="hifz-grid-container" id="hifz-student-cards-container">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Historical Evaluation Logs Table -->
+        <div style="margin-top: 40px;">
+          <div class="section-header">
+            <h3>Recent Evaluation Logs (سجل التسميع والملاحظات)</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th style="width: 110px;">Date</th>
+                  <th>Student</th>
+                  <th>Sabaq (سَبَق) - New</th>
+                  <th>Sabqi (سَبْقِي) - Recent</th>
+                  <th>Manzil (مَنْزِل) - Cycle</th>
+                  <th style="width: 140px;">Quality Rating</th>
+                </tr>
+              </thead>
+              <tbody id="hifz-records-table-body">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: TARGET SETTING (Teachers & Admin) -->
+      <section id="tab-targets" class="tab-content-pane">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Hifz Target Setting & Goals (إدارة الأهداف والخطة المرحلية)</h2>
+            <p class="section-subtitle">Ustadhs assign specific Surah and Juz completion deadlines for each student</p>
+          </div>
+          <div class="section-controls">
+            <select id="targets-filter-status" class="form-select">
+              <option value="all">All Targets</option>
+              <option value="in-progress">In Progress (قيد التنفيذ)</option>
+              <option value="completed">Completed (مكتمل)</option>
+            </select>
+            <button id="btn-open-target-modal" class="btn-gold">
+              <span>🎯</span> Assign New Target (تحديد هدف جديد)
+            </button>
+          </div>
+        </div>
+
+        <div id="targets-list-container" class="targets-grid">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- TAB 5: STUDENT & PARENT PORTAL -->
+      <section id="tab-student-portal" class="tab-content-pane">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Student Progress Portfolio (الملف الشامل للطالب)</h2>
+            <p class="section-subtitle">Individual 30-Juz Mushaf status, attendance analytics, and performance timeline</p>
+          </div>
+          <div class="section-controls">
+            <select id="portal-student-select" class="form-select" style="min-width: 240px;"></select>
+            <button id="btn-print-student-report" class="btn-primary">
+              <span>🖨</span> Print Official Progress Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Student Profile Hero Card -->
+        <div class="student-profile-hero">
+          <div class="hero-left">
+            <div class="hero-avatar" id="profile-student-avatar">—</div>
+            <div class="hero-names">
+              <h2 id="profile-student-name">Select a Student Profile</h2>
+              <span class="hero-arabic" id="profile-student-arabic"></span>
+              <div class="hero-meta-chips">
+                <span class="hero-chip" id="profile-student-code">—</span>
+                <span class="hero-chip" id="profile-student-class">—</span>
+                <span class="hero-chip">Ustadh: <strong id="profile-student-teacher">—</strong></span>
+                <span class="hero-chip">Guardian: <strong id="profile-student-guardian">—</strong> (<span id="profile-student-phone">—</span>)</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div style="text-align: right; margin-bottom: 8px;">
+              <span class="small text-muted">Active Memorization Target:</span>
+              <div style="font-weight: 700; color: var(--gold-400);" id="profile-student-target">No target set</div>
+            </div>
+            <button class="btn-secondary" id="btn-profile-edit">
+              <span>✏️</span> Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Metric Cards for Selected Student -->
+        <div class="grid-4" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <span class="stat-title">Attendance Rate</span>
+            <div class="stat-value text-emerald" id="metric-att-rate">100%</div>
+            <span class="stat-subtext" id="metric-att-count">0 sessions logged</span>
+          </div>
+
+          <div class="stat-card stat-gold">
+            <span class="stat-title">Hifz Completion</span>
+            <div class="stat-value text-gold" id="metric-hifz-pct">0%</div>
+            <span class="stat-subtext" id="metric-hifz-count">0 / 30 Ajza</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-title">Evaluation Rating</span>
+            <div style="margin: 8px 0;">
+              <span id="metric-rating-badge" class="badge badge-excellent">Excellent</span>
+            </div>
+            <span class="stat-subtext" id="metric-evals-count">Based on recent sessions</span>
+          </div>
+
+          <div class="stat-card stat-blue">
+            <span class="stat-title">Status</span>
+            <div class="stat-value" style="font-size: 1.4rem; color: #60a5fa;">Active Student</div>
+            <span class="stat-subtext">Noor Al-Quran Tahfeez</span>
+          </div>
+        </div>
+
+        <!-- Visual 30-Juz Mushaf Tracker -->
+        <div class="stat-card" style="margin-bottom: 30px;">
+          <div class="section-header" style="margin-bottom: 8px;">
+            <div>
+              <h3>Interactive 30-Juz Quran Mushaf Tracker (خريطة المصحف الشريف)</h3>
+              <p class="small text-muted">Click any Juz box to toggle or update memorization completion status</p>
+            </div>
+            <div style="display: flex; gap: 12px; font-size: 0.8rem;">
+              <span style="display: inline-flex; align-items: center; gap: 4px;">
+                <span style="width: 12px; height: 12px; background: var(--status-present); border-radius: 3px;"></span> Memorized (مكتمل)
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;">
+                <span style="width: 12px; height: 12px; background: var(--gold-500); border-radius: 3px;"></span> In Progress (جاري)
+              </span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;">
+                <span style="width: 12px; height: 12px; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: 3px;"></span> Pending (متبقي)
+              </span>
+            </div>
+          </div>
+
+          <div class="mushaf-30-juz-grid" id="mushaf-30-juz-grid">
+            <!-- 30 Juz cards rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Evaluation History Timeline -->
+        <div class="stat-card">
+          <h3 style="margin-bottom: 16px;">Comprehensive Evaluation History (سجل التقييمات الشامل)</h3>
+          <div id="student-eval-timeline">
+            <!-- Timeline items rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: USER MANAGEMENT (Admin Only) -->
+      <section id="tab-users" class="tab-content-pane">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>User Accounts & Access Management (إدارة المستخدمين والصلاحيات)</h2>
+            <p class="section-subtitle">Admin dashboard: Add teachers, students, parents, and administrative staff</p>
+          </div>
+          <div class="section-controls">
+            <select id="users-role-filter" class="form-select">
+              <option value="all">All Roles</option>
+              <option value="admin">Administrators (مدراء)</option>
+              <option value="teacher">Teachers / Ustadhs (معلمون)</option>
+              <option value="student">Students (طلاب)</option>
+              <option value="parent">Parents (أولياء أمور)</option>
+            </select>
+            <button id="btn-open-add-user-modal" class="btn-primary">
+              <span>➕</span> Add New User (إضافة مستخدم جديد)
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Full Name & Email</th>
+                <th>Username</th>
+                <th style="width: 130px;">System Role</th>
+                <th>Assigned Halaqah / Student</th>
+                <th style="width: 120px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 7: ACADEMY SETTINGS & BACKUP (Admin Only) -->
+      <section id="tab-settings" class="tab-content-pane">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Academy Settings & Multi-Tenant Data Management</h2>
+            <p class="section-subtitle">Backup, restore, and configure school tenant parameters</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Backup & Restore -->
+          <div class="stat-card">
+            <h3 style="margin-bottom: 12px;">Database Backup & Portability</h3>
+            <p style="margin-bottom: 16px;">Export all students, classes, attendance registers, and Hifz logs into a portable JSON backup file, or restore from a previous backup.</p>
+            
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+              <button id="btn-export-backup" class="btn-primary">
+                <span>💾</span> Export Complete JSON Backup
+              </button>
+
+              <label class="btn-secondary" style="cursor: pointer;">
+                <span>📂</span> Import JSON Backup
+                <input type="file" id="input-import-backup" accept=".json" style="display: none;">
+              </label>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-light); margin: 20px 0;">
+
+            <h4 style="color: var(--status-absent); margin-bottom: 8px;">Reset Demo Data</h4>
+            <p style="font-size: 0.85rem; margin-bottom: 12px;">Reload multi-tenant demo accounts, teachers, and sample records.</p>
+            <button id="btn-reset-demo-data" class="btn-icon-subtle" style="color: var(--status-absent); border-color: rgba(239, 68, 68, 0.4);">
+              ⚠️ Reset All to Seed Data
+            </button>
+          </div>
+
+          <!-- Academy Info -->
+          <div class="stat-card">
+            <h3 style="margin-bottom: 12px;">Active Academy Configuration</h3>
+            <div class="form-group">
+              <label class="form-label">Active School Name</label>
+              <input type="text" class="form-input" value="Noor Al-Quran Tahfeez Academy" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Arabic Name</label>
+              <input type="text" class="form-input arabic-text" value="معهد نور القرآن الكريم للتحفيظ والعلوم الشرعية" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Academic Session</label>
+              <input type="text" class="form-input" value="2026/2027 • First Term" readonly>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <p>Noor Al-Quran Tahfeez Academy • Multi-Tenant School & Hifz Management System</p>
+    </footer>
+  </div>
+
+  <!-- MODAL 1: Classical 3-Part Hifz Evaluation Dialog -->
+  <dialog id="hifz-entry-dialog" aria-labelledby="hifz-dialog-title">
+    <div class="dialog-header">
+      <h3 id="hifz-dialog-title" style="color: var(--gold-400);">
+        📖 Log Daily Hifz Assessment (تسجيل التسميع اليومي)
+      </h3>
+      <button class="dialog-close-btn" id="hifz-modal-close" aria-label="Close dialog">✕</button>
+    </div>
+
+    <form id="hifz-entry-form">
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" for="modal-student-select">Student (الطالب)</label>
+          <select id="modal-student-select" class="form-select" required></select>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" for="modal-hifz-date">Assessment Date</label>
+          <input type="date" id="modal-hifz-date" class="form-input" required>
+        </div>
+      </div>
+
+      <!-- Part 1: Sabaq -->
+      <div class="classical-hifz-section">
+        <div class="classical-hifz-section-title">
+          <span>1. SABAQ (سَبَق) — New Lesson Memorized Today</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label class="form-label">Surah (السورة)</label>
+            <select id="modal-sabaq-surah" class="form-select" required></select>
+          </div>
+          <div>
+            <label class="form-label">From Ayah</label>
+            <input type="number" id="modal-sabaq-ayah-start" class="form-input" min="1" value="1" required>
+          </div>
+          <div>
+            <label class="form-label">To Ayah <small id="modal-sabaq-max-ayah" class="text-muted"></small></label>
+            <input type="number" id="modal-sabaq-ayah-end" class="form-input" min="1" value="10" required>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+          <div>
+            <label class="form-label">Evaluation Rating</label>
+            <select id="modal-sabaq-rating" class="form-select">
+              <option value="excellent">Excellent (ممتاز - 4 pts)</option>
+              <option value="good" selected>Good (جيد جداً - 3 pts)</option>
+              <option value="fair">Fair (مقبول - 2 pts)</option>
+              <option value="poor">Needs Practice (يحتاج تدريب - 1 pt)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Tajweed & Fluency Notes</label>
+            <input type="text" id="modal-sabaq-notes" class="form-input" placeholder="e.g., Flawless recitation, good Ghunnah">
+          </div>
+        </div>
+      </div>
+
+      <!-- Part 2: Sabqi -->
+      <div class="classical-hifz-section">
+        <div class="classical-hifz-section-title">
+          <span>2. SABQI (سَبْقِي) — Recent Lessons / Current Quarter</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div>
+            <label class="form-label">Surah</label>
+            <select id="modal-sabqi-surah" class="form-select"></select>
+          </div>
+          <div>
+            <label class="form-label">From Ayah</label>
+            <input type="number" id="modal-sabqi-ayah-start" class="form-input" min="1" value="1">
+          </div>
+          <div>
+            <label class="form-label">To Ayah</label>
+            <input type="number" id="modal-sabqi-ayah-end" class="form-input" min="1" value="20">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+          <div>
+            <label class="form-label">Revision Quality</label>
+            <select id="modal-sabqi-rating" class="form-select">
+              <option value="excellent">Excellent (ممتاز)</option>
+              <option value="good" selected>Good (جيد جداً)</option>
+              <option value="fair">Fair (مقبول)</option>
+              <option value="poor">Needs Practice</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Ustadh Remarks</label>
+            <input type="text" id="modal-sabqi-notes" class="form-input" placeholder="Retention status...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Part 3: Manzil -->
+      <div class="classical-hifz-section">
+        <div class="classical-hifz-section-title">
+          <span>3. MANZIL / DHOR (مَنْزِل / دور) — Retention Cycle of Completed Ajza</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px;">
+          <div>
+            <label class="form-label">Juz Revised (الجزء)</label>
+            <select id="modal-manzil-juz" class="form-select"></select>
+          </div>
+          <div>
+            <label class="form-label">Retention Rating</label>
+            <select id="modal-manzil-rating" class="form-select">
+              <option value="excellent">Excellent (ممتاز)</option>
+              <option value="good" selected>Good (جيد جداً)</option>
+              <option value="fair">Fair (مقبول)</option>
+              <option value="poor">Needs Practice</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Manzil Notes</label>
+            <input type="text" id="modal-manzil-notes" class="form-input" placeholder="e.g. Clean recall, checked Mutashabihat">
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" id="hifz-modal-cancel">Cancel</button>
+        <button type="submit" class="btn-gold">
+          <span>💾</span> Save Evaluation (حفظ التقييم)
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL 2: Target Setting Dialog (Teacher & Admin) -->
+  <dialog id="target-entry-dialog" aria-labelledby="target-dialog-title">
+    <div class="dialog-header">
+      <h3 id="target-dialog-title" style="color: var(--gold-400);">
+        🎯 Assign Memorization Target (تحديد هدف التحفيظ)
+      </h3>
+      <button class="dialog-close-btn" id="target-modal-close" aria-label="Close dialog">✕</button>
+    </div>
+
+    <form id="target-entry-form">
+      <div class="form-group">
+        <label class="form-label" for="modal-target-student">Student (الطالب) *</label>
+        <select id="modal-target-student" class="form-select" required></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="modal-target-title">Target Goal Title *</label>
+        <input type="text" id="modal-target-title" class="form-input" placeholder="e.g. Complete Juz 27 before end of term" required>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label" for="modal-target-type">Target Scope</label>
+          <select id="modal-target-type" class="form-select">
+            <option value="juz">Specific Juz</option>
+            <option value="surah">Specific Surah</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="modal-target-deadline">Target Deadline Date</label>
+          <input type="date" id="modal-target-deadline" class="form-input" required>
+        </div>
+      </div>
+
+      <div id="modal-target-juz-group" class="form-group">
+        <label class="form-label" for="modal-target-juz">Target Juz (الجزء)</label>
+        <select id="modal-target-juz" class="form-select"></select>
+      </div>
+
+      <div id="modal-target-surah-group" class="form-group" style="display: none;">
+        <label class="form-label" for="modal-target-surah">Target Surah (السورة)</label>
+        <select id="modal-target-surah" class="form-select"></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="modal-target-notes">Teacher Instructions / Notes</label>
+        <textarea id="modal-target-notes" class="form-textarea" rows="2" placeholder="e.g. Focus on Waqf and Ibtida rules"></textarea>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" id="target-modal-cancel">Cancel</button>
+        <button type="submit" class="btn-gold">
+          <span>💾</span> Assign Target (حفظ الهدف)
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL 3: Add / Edit Student Dialog -->
+  <dialog id="add-student-dialog" aria-labelledby="student-dialog-title">
+    <div class="dialog-header">
+      <h3 id="student-dialog-title" style="color: var(--emerald-400);">
+        Enroll New Student (تسجيل طالب جديد)
+      </h3>
+      <button class="dialog-close-btn" id="add-student-close" aria-label="Close dialog">✕</button>
+    </div>
+
+    <form id="student-manage-form">
+      <input type="hidden" id="student-edit-id">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label" for="student-input-name">Full Student Name (English) *</label>
+          <input type="text" id="student-input-name" class="form-input" placeholder="e.g. Zayd Muhammad" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="student-input-arabic">Student Name (Arabic)</label>
+          <input type="text" id="student-input-arabic" class="form-input arabic-text" placeholder="مثال: زيد محمد">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="modal-student-class">Assigned Tahfeez Halaqah *</label>
+        <select id="modal-student-class" class="form-select" required></select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label" for="student-input-guardian">Guardian / Parent Name</label>
+          <input type="text" id="student-input-guardian" class="form-input" placeholder="e.g. Muhammad Al-Hassan">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="student-input-phone">Contact Phone</label>
+          <input type="tel" id="student-input-phone" class="form-input" placeholder="+234 800 000 0000">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="student-input-target">Initial Memorization Goal</label>
+        <input type="text" id="student-input-target" class="form-input" placeholder="e.g. Complete Juz 27 before end of term">
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" id="add-student-cancel">Cancel</button>
+        <button type="submit" class="btn-primary">
+          <span>💾</span> Save Student Record
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL 4: User Management Dialog (Admin Only) -->
+  <dialog id="user-manage-dialog" aria-labelledby="user-dialog-title">
+    <div class="dialog-header">
+      <h3 id="user-dialog-title" style="color: var(--emerald-400);">
+        Add New System User (إضافة مستخدم جديد)
+      </h3>
+      <button class="dialog-close-btn" id="user-modal-close" aria-label="Close dialog">✕</button>
+    </div>
+
+    <form id="user-manage-form">
+      <input type="hidden" id="modal-user-id">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label" for="modal-user-name">Full Name *</label>
+          <input type="text" id="modal-user-name" class="form-input" placeholder="e.g. Ustadh Bilal" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="modal-user-role">System Role *</label>
+          <select id="modal-user-role" class="form-select" required>
+            <option value="teacher">Teacher / Ustadh (معلم)</option>
+            <option value="student">Student (طالب)</option>
+            <option value="parent">Parent (ولي أمر)</option>
+            <option value="admin">Administrator (مدير)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label" for="modal-user-username">Login Username *</label>
+          <input type="text" id="modal-user-username" class="form-input" placeholder="e.g. bilal.umar" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="modal-user-password">Account Password *</label>
+          <input type="password" id="modal-user-password" class="form-input" placeholder="Enter account password" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="modal-user-email">Email Address</label>
+        <input type="email" id="modal-user-email" class="form-input" placeholder="email@academy.edu">
+      </div>
+
+      <div id="modal-user-halaqah-group" class="form-group">
+        <label class="form-label" for="modal-user-halaqah">Assigned Halaqah (Form Master)</label>
+        <select id="modal-user-halaqah" class="form-select"></select>
+      </div>
+
+      <div id="modal-user-student-group" class="form-group" style="display: none;">
+        <label class="form-label" for="modal-user-student-link">Linked Student Record</label>
+        <select id="modal-user-student-link" class="form-select"></select>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" id="user-modal-cancel">Cancel</button>
+        <button type="submit" class="btn-primary">
+          <span>💾</span> Save User Account
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Interactive Toast Notification -->
+  <div id="app-toast" class="app-toast" role="alert">
+    <span>✓</span> Notification message
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
